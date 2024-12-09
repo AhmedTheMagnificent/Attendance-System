@@ -1,4 +1,5 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema({
     name : String,
@@ -6,11 +7,30 @@ const userSchema = new mongoose.Schema({
     password : String,
     profilePicture : String,
     attendance : [
-        {data : Date, status : String}
+        {
+            data : Date,
+            status : {
+                type : String, enum : ["Present", "Absent", "Leave"], default : "Absent"
+            }
+        }
     ],
     leaveRequest : [
-        {date : Date, reason : String, status : String}
+        {
+            date : Date,
+            reason : String,
+            status : {
+                type : String, enum : ["Approved", "Rejected", "Pending"], default : "Pending"
+            }
+        }
     ]
+});
+
+userSchema.pre("save", async function(next) {
+    if(this.isModified("password")){
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
+    }
+    next();
 });
 
 module.exports = mongoose.model("User", userSchema);
